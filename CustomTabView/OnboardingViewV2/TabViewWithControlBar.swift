@@ -10,12 +10,12 @@ import SwiftUI
 protocol TabViewWithControlBarViewModelProtocol: ObservableObject {
     associatedtype TabControlViewModel: TabViewControlViewModelProtocol
     var pages: [Page] { get }
-    var tabControlViewModel: TabControlViewModel { get }
+    var tabControlViewModel: TabControlViewModel { get set }
 }
 
 final class TabViewWithControlBarViewModel<TabControlViewModel: TabViewControlViewModelProtocol>: TabViewWithControlBarViewModelProtocol {
     let pages: [Page]
-    @Published var tabControlViewModel: TabControlViewModel
+    var tabControlViewModel: TabControlViewModel
     
     init(
         pages: [Page],
@@ -33,15 +33,13 @@ struct TabViewWithControlBar<ViewModel: TabViewWithControlBarViewModelProtocol>:
         self.viewModel = viewModel
     }
     var body: some View {
-
-        let selectedIndex = Binding <Int>  {
-            viewModel.tabControlViewModel.selectedIndex
-        } set: {
-            viewModel.tabControlViewModel.didChangePage($0)
-        }
-
+//        let selectedIndex = Binding<Int> {
+//            viewModel.tabControlViewModel.selectedIndex
+//        } set: {
+//            viewModel.tabControlViewModel.didChangePage($0)
+//        }
         VStack {
-            TabView(selection: selectedIndex) {
+            TabView(selection: $viewModel.tabControlViewModel.selectedIndex) {
                 ForEach(Array(viewModel.pages.enumerated()), id: \.offset) { index, page in
                     Text(page.title)
                 }
@@ -55,11 +53,14 @@ struct TabViewWithControlBar<ViewModel: TabViewWithControlBarViewModelProtocol>:
 }
 
 protocol TabViewControlViewModelProtocol: ObservableObject {
-    var selectedIndex: Int { get }
-    var previousTitle: String? { get }
-    var nextTitle: String? { get }
-    var mainTitle: String? { get }
+    var selectedIndex: Int { get set }
+    var previousTitle: String { get }
+    var nextTitle: String { get }
+    var mainTitle: String { get }
     var pagesCount: Int { get }
+    var canGoToPreviousTab: Bool { get }
+    var canGoToNextTab: Bool { get }
+    var canShowMainCTA: Bool { get }
     func didPressPrevButton()
     func didPressNextButton()
     func didPressMainCTAButton()
@@ -67,32 +68,36 @@ protocol TabViewControlViewModelProtocol: ObservableObject {
 }
 
 final class TabViewControlViewModel: TabViewControlViewModelProtocol {
-    var previousTitle: String?
-    var nextTitle: String?
-    var mainTitle: String?
+    var previousTitle: String
+    var nextTitle: String
+    var mainTitle: String
     var pagesCount: Int
     @Published var selectedIndex: Int
-    
-    init(previousTitle: String? = nil, nextTitle: String? = nil, mainTitle: String? = nil, pagesCount: Int, selectedIndex: Int) {
+    init(previousTitle: String, nextTitle: String, mainTitle: String, pagesCount: Int, selectedIndex: Int) {
         self.previousTitle = previousTitle
         self.nextTitle = nextTitle
         self.mainTitle = mainTitle
         self.pagesCount = pagesCount
         self.selectedIndex = selectedIndex
     }
-    
+    var canGoToPreviousTab: Bool {
+        selectedIndex > 0 && selectedIndex < pagesCount - 1
+    }
+    var canGoToNextTab: Bool {
+        selectedIndex < pagesCount - 1
+    }
+    var canShowMainCTA: Bool {
+        selectedIndex == pagesCount - 1
+    }
     func didPressPrevButton() {
         selectedIndex -= 1
     }
-    
     func didPressNextButton() {
         selectedIndex += 1
     }
-    
     func didPressMainCTAButton() {
         selectedIndex = 0
     }
-    
     func didChangePage(_ index: Int) {
         selectedIndex = index
     }
@@ -102,26 +107,31 @@ struct TabViewControlView<ViewModel: TabViewControlViewModelProtocol>: View {
     @ObservedObject var viewModel: ViewModel
     var body: some View {
         HStack {
-            Button("Previous") {
-                viewModel.didPressPrevButton()
+            if viewModel.canGoToPreviousTab {
+                Button(viewModel.previousTitle) {
+                    viewModel.didPressPrevButton()
+                }
+                .padding()
+                .buttonStyle(BlueButton())
+                Spacer()
             }
-            .padding()
-            .buttonStyle(BlueButton())
-            Spacer()
-            
-            Button("MainCTA") {
-                viewModel.didPressMainCTAButton()
+            if viewModel.canShowMainCTA {
+                Spacer()
+                Button(viewModel.mainTitle) {
+                    viewModel.didPressMainCTAButton()
+                }
+                .buttonStyle(BlueButton())
+                .padding()
+                Spacer()
             }
-            .buttonStyle(BlueButton())
-            .padding()
-            
-            Spacer()
-            
-            Button("Next") {
-                viewModel.didPressNextButton()
+            if viewModel.canGoToNextTab {
+                Spacer()
+                Button(viewModel.nextTitle) {
+                    viewModel.didPressNextButton()
+                }
+                .buttonStyle(BlueButton())
+                .padding()
             }
-            .buttonStyle(BlueButton())
-            .padding()
         }
     }
 }
@@ -133,7 +143,13 @@ struct TabViewControlView<ViewModel: TabViewControlViewModelProtocol>: View {
         Page(title: "Page 22"),
         Page(title: "Page 33")
     ]
-    let tabControlViewModel = TabViewControlViewModel(pagesCount: testPages.count, selectedIndex: 0)
+    let tabControlViewModel = TabViewControlViewModel(
+        previousTitle: "Prev",
+        nextTitle: "Next",
+        mainTitle: "Main",
+        pagesCount: testPages.count,
+        selectedIndex: 0
+    )
     let viewModel = TabViewWithControlBarViewModel(
         pages: testPages,
         tabControlViewModel: tabControlViewModel

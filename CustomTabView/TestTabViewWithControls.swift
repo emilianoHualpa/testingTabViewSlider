@@ -37,7 +37,7 @@ struct TestTabViewWithControls: View {
 }
 
 struct TabViewWithControlsView: View {
-    @ObservedObject var viewModel: TabViewWithControlsViewModel
+    var viewModel: TabViewWithControlsViewModel
 
     var body: some View {
         HStack {
@@ -73,7 +73,7 @@ struct TabViewWithControlsView: View {
     }
 }
 
-class TabViewWithControlsViewModel: ObservableObject {
+class TabViewWithControlsViewModel {
     @Binding var selectedTab: Int
     private var pagesCount: Int
     init(selectedTab: Binding<Int>, pagesCount: Int) {

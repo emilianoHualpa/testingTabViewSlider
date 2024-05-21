@@ -18,7 +18,13 @@ struct CustomTabViewApp: App {
                 Page(title: "Page 22"),
                 Page(title: "Page 33")
             ]
-            let tabControlViewModel = TabViewControlViewModel(pagesCount: testPages.count, selectedIndex: 0)
+            let tabControlViewModel = TabViewControlViewModel(
+                previousTitle: "Prev",
+                nextTitle: "Next",
+                mainTitle: "Main",
+                pagesCount: testPages.count,
+                selectedIndex: 0
+            )
             let viewModel = TabViewWithControlBarViewModel(
                 pages: testPages,
                 tabControlViewModel: tabControlViewModel
